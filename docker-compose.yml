@@ -1,0 +1,56 @@
+version: "3"
+
+services:
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - "wp_content_uploads:/var/www/html/uploads"
+      - "./:/var/www/html"
+      - "./docker/nginx/nginx.conf:/etc/nginx/nginx.conf"
+    ports:
+      - "80:80"
+    depends_on:
+      - php
+
+  php:
+    build:
+      context: ./docker/php
+    volumes:
+      - "wp_content_uploads:/var/www/html/wp-content/uploads"
+      - "./:/var/www/html"
+      - "./docker/php/www.conf:/usr/local/etc/php-fpm.d/www.conf"
+      - "./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini"
+    ports:
+      - "9003:9000"
+      - "9001:9001"
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:latest
+    env_file: ./docker/env/mysql.env
+    command: mysqld --user=root --sql_mode=""
+    restart: always
+    volumes:
+      - "wp_dbdata:/var/lib/mysql"
+    ports:
+      - "3309:3306"
+
+  phpmyadmin:
+    env_file: ./docker/env/phpmyadmin.env
+    image: phpmyadmin/phpmyadmin:latest
+    volumes:
+      - "./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini"
+    links:
+      - mysql
+    ports:
+      - 8001:80
+    depends_on:
+      - mysql
+
+volumes:
+  wp_dbdata:
+    driver: local
+  wp_content_uploads:
+    driver: local
